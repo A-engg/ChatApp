@@ -1,4 +1,7 @@
+
+// Import React dan useState untuk membuat komponen dan state
 import React, { useState } from "react";
+// Import komponen-komponen UI dari React Native
 import { 
   View, 
   Text, 
@@ -11,33 +14,49 @@ import {
   ActivityIndicator,
   ScrollView
 } from "react-native";
+// Import custom hook untuk autentikasi
 import { useAuth } from "../contexts/AuthContext";
 
+
+// Komponen utama untuk layar login dan register
 export default function LoginScreen() {
+  // State untuk input username
   const [username, setUsername] = useState("");
+  // State untuk input email (hanya saat register)
   const [email, setEmail] = useState("");
+  // State untuk input password
   const [password, setPassword] = useState("");
+  // State untuk input nama lengkap (display name)
   const [displayName, setDisplayName] = useState("");
+  // State untuk mode register/login
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  // State loading saat proses login/register
   const [loading, setLoading] = useState(false);
+  // Ambil fungsi login dan register dari context
   const { login, register } = useAuth();
 
+
+  // Fungsi untuk submit login/register
   const handleSubmit = async () => {
+    // Validasi input username dan password
     if (!username.trim() || !password.trim()) {
       Alert.alert("Error", "Username dan password harus diisi");
       return;
     }
 
+    // Validasi input email saat register
     if (isRegisterMode && !email.trim()) {
       Alert.alert("Error", "Email harus diisi");
       return;
     }
 
+    // Validasi input nama lengkap saat register
     if (isRegisterMode && !displayName.trim()) {
       Alert.alert("Error", "Nama harus diisi");
       return;
     }
 
+    // Validasi panjang password
     if (password.length < 6) {
       Alert.alert("Error", "Password minimal 6 karakter");
       return;
@@ -46,9 +65,11 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       if (isRegisterMode) {
+        // Proses registrasi
         await register(username.trim(), email.trim(), password, displayName.trim());
         Alert.alert("Sukses", "Registrasi berhasil!");
       } else {
+        // Proses login
         await login(username.trim(), password);
       }
     } catch (error: any) {
@@ -58,6 +79,8 @@ export default function LoginScreen() {
     }
   };
 
+
+  // Fungsi untuk mengganti mode login/register
   const handleModeSwitch = () => {
     setIsRegisterMode(!isRegisterMode);
     setUsername("");
@@ -66,6 +89,8 @@ export default function LoginScreen() {
     setDisplayName("");
   };
 
+
+  // Render UI login/register
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -80,6 +105,7 @@ export default function LoginScreen() {
             {isRegisterMode ? "Daftar Akun Baru" : "Login"}
           </Text>
           
+          {/* Input nama lengkap hanya saat register */}
           {isRegisterMode && (
             <TextInput
               style={styles.input}
@@ -91,6 +117,7 @@ export default function LoginScreen() {
             />
           )}
           
+          {/* Input username */}
           <TextInput
             style={styles.input}
             placeholder="Username"
@@ -101,6 +128,7 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
+          {/* Input email hanya saat register */}
           {isRegisterMode && (
             <TextInput
               style={styles.input}
@@ -114,6 +142,7 @@ export default function LoginScreen() {
             />
           )}
           
+          {/* Input password */}
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -124,6 +153,7 @@ export default function LoginScreen() {
             editable={!loading}
           />
           
+          {/* Tombol submit login/register */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSubmit}
@@ -138,6 +168,7 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
           
+          {/* Tombol switch mode login/register */}
           <TouchableOpacity
             onPress={handleModeSwitch}
             disabled={loading}
@@ -155,6 +186,8 @@ export default function LoginScreen() {
   );
 }
 
+
+// StyleSheet untuk styling komponen
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 

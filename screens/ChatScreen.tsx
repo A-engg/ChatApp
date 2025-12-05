@@ -1,4 +1,7 @@
+
+// Import React dan beberapa hook
 import React, { useEffect, useState, useCallback } from "react";
+// Import komponen UI dari React Native
 import {
   View,
   Text,
@@ -11,13 +14,21 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
+// Import NetInfo untuk cek koneksi internet
 import NetInfo from '@react-native-community/netinfo';
+// Import image picker untuk memilih gambar dari galeri
 import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-picker';
+// Import ImageResizer untuk resize gambar
 import ImageResizer from 'react-native-image-resizer';
+// Import RNFS untuk membaca file sebagai base64
 import RNFS from 'react-native-fs';
+// Import storage dari Firebase (jika ingin upload ke storage)
 import storage from '@react-native-firebase/storage';
+// Import firestore untuk database
 import { firestore } from "../firebase";
+// Import context autentikasi
 import { useAuth } from "../contexts/AuthContext";
+// Import fungsi-fungsi penyimpanan offline
 import {
   saveMessagesToLocal,
   getLocalMessages,
@@ -28,18 +39,30 @@ import {
   Message,
 } from "../utils/offlineStorage";
 
+
+// Konstanta untuk resize gambar
 const MAX_WIDTH = 1024;
 const MAX_HEIGHT = 1024;
 const JPEG_QUALITY = 70;
 
+
+// Komponen utama untuk layar chat
 export default function ChatScreen() {
+  // Ambil user dan fungsi logout dari context
   const { user, logout } = useAuth();
+  // State untuk input pesan
   const [message, setMessage] = useState("");
+  // State untuk daftar pesan
   const [messages, setMessages] = useState<Message[]>([]);
+  // State status online/offline
   const [isOnline, setIsOnline] = useState(true);
+  // State status upload gambar
   const [uploading, setUploading] = useState(false);
+  // State progress upload gambar
   const [uploadProgress, setUploadProgress] = useState(0);
 
+
+  // Saat komponen mount, load pesan lokal dan listen status koneksi
   useEffect(() => {
     loadLocalMessages();
     const unsubscribeNetwork = NetInfo.addEventListener(handleConnectivityChange);
@@ -49,6 +72,8 @@ export default function ChatScreen() {
     };
   }, []);
 
+
+  // Listen perubahan data pesan di Firestore jika online
   useEffect(() => {
     if (!isOnline) return;
 
@@ -86,12 +111,16 @@ export default function ChatScreen() {
     return () => unsub();
   }, [isOnline]);
 
+
+  // Fungsi untuk load pesan dari penyimpanan lokal
   const loadLocalMessages = async () => {
     const local = await getLocalMessages();
     const pending = await getPendingMessages();
     setMessages([...local, ...pending]);
   };
 
+
+  // Fungsi untuk handle perubahan status koneksi
   const handleConnectivityChange = (state: any) => {
     setIsOnline(state.isConnected);
     if (state.isConnected) {
@@ -99,6 +128,8 @@ export default function ChatScreen() {
     }
   };
 
+
+  // Fungsi untuk mengirim pesan pending ke Firestore saat online
   const syncPendingMessages = async () => {
     const pending = await getPendingMessages();
     for (const msg of pending) {
@@ -125,6 +156,8 @@ export default function ChatScreen() {
     }
   };
 
+
+  // Fungsi untuk mengirim pesan baru
   const sendMessage = async () => {
     if (!message.trim() || !user) return;
 
@@ -156,6 +189,8 @@ export default function ChatScreen() {
     }
   };
 
+
+  // Fungsi untuk memilih gambar dari galeri, resize, dan kirim ke Firestore
   const pickAndSendImage = async () => {
     const options: ImageLibraryOptions = {
       mediaType: 'photo',
@@ -211,6 +246,8 @@ export default function ChatScreen() {
     }
   };
 
+
+  // Fungsi untuk logout
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -226,6 +263,8 @@ export default function ChatScreen() {
     );
   };
 
+
+  // Fungsi untuk render setiap item pesan di list
   const renderItem = ({ item }: { item: Message }) => {
     const isMyMessage = item.userId === user?.id;
     
@@ -256,14 +295,18 @@ export default function ChatScreen() {
     );
   };
 
+
+  // Render UI utama layar chat
   return (
     <View style={styles.container}>
+      {/* Banner offline jika tidak ada koneksi */}
       {!isOnline && (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineText}>📵 Mode Offline</Text>
         </View>
       )}
 
+      {/* List pesan */}
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
@@ -271,6 +314,7 @@ export default function ChatScreen() {
         contentContainerStyle={styles.messageList}
       />
 
+      {/* Progress upload gambar */}
       {uploading && (
         <View style={styles.uploadingContainer}>
           <ActivityIndicator color="#007AFF" />
@@ -280,6 +324,7 @@ export default function ChatScreen() {
         </View>
       )}
 
+      {/* Input pesan dan tombol kirim */}
       <View style={styles.inputRow}>
         <TouchableOpacity 
           style={styles.imageButton}
@@ -307,6 +352,7 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Tombol logout */}
       <TouchableOpacity 
         style={styles.logoutButton}
         onPress={handleLogout}
@@ -317,6 +363,8 @@ export default function ChatScreen() {
   );
 }
 
+
+// StyleSheet untuk styling komponen UI chat
 const styles = StyleSheet.create({
   container: {
     flex: 1,
