@@ -4,6 +4,7 @@ import { firestore } from '../firebase';
 
 interface User {
   id: string;
+  username: string;
   email: string;
   displayName: string;
   createdAt: Date;
@@ -12,8 +13,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -45,26 +46,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return emailRegex.test(email);
   };
 
-  const login = async (email: string, password: string) => {
+  const validateUsername = (username: string): boolean => {
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    return usernameRegex.test(username);
+  };
+
+  const login = async (username: string, password: string) => {
     try {
-      if (!validateEmail(email)) {
-        throw new Error('Format email tidak valid');
+      if (!validateUsername(username)) {
+        throw new Error('Username harus 3-20 karakter (huruf, angka, underscore)');
       }
 
-      // Query Firestore untuk user
       const userSnapshot = await firestore()
         .collection('users')
-        .where('email', '==', email.toLowerCase())
+        .where('username', '==', username.toLowerCase())
         .where('password', '==', password)
         .get();
 
       if (userSnapshot.empty) {
-        throw new Error('Email atau password salah');
+        throw new Error('Username atau password salah');
       }
 
       const userData = userSnapshot.docs[0].data();
       const user: User = {
         id: userSnapshot.docs[0].id,
+        username: userData.username,
         email: userData.email,
         displayName: userData.displayName,
         createdAt: userData.createdAt?.toDate() || new Date(),
@@ -77,8 +83,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, displayName: string) => {
+  const register = async (username: string, email: string, password: string, displayName: string) => {
     try {
+      if (!validateUsername(username)) {
+        throw new Error('Username harus 3-20 karakter (huruf, angka, underscore)');
+      }
+
       if (!validateEmail(email)) {
         throw new Error('Format email tidak valid');
       }
@@ -87,26 +97,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Nama harus diisi');
       }
 
-      // Cek apakah email sudah ada
-      const existingUser = await firestore()
+      const existingUsername = await firestore()
+        .collection('users')
+        .where('username', '==', username.toLowerCase())
+        .get();
+
+      if (!existingUsername.empty) {
+        throw new Error('Username sudah digunakan');
+      }
+
+      const existingEmail = await firestore()
         .collection('users')
         .where('email', '==', email.toLowerCase())
         .get();
 
-      if (!existingUser.empty) {
+      if (!existingEmail.empty) {
         throw new Error('Email sudah terdaftar');
       }
 
-      // Buat user baru
       const userRef = await firestore().collection('users').add({
+        username: username.toLowerCase(),
         email: email.toLowerCase(),
         displayName: displayName.trim(),
-        password, // Dalam production, gunakan hashing!
+        password,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
       const user: User = {
         id: userRef.id,
+        username: username.toLowerCase(),
         email: email.toLowerCase(),
         displayName: displayName.trim(),
         createdAt: new Date(),

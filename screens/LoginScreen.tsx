@@ -14,6 +14,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -22,8 +23,13 @@ export default function LoginScreen() {
   const { login, register } = useAuth();
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Email dan password harus diisi");
+    if (!username.trim() || !password.trim()) {
+      Alert.alert("Error", "Username dan password harus diisi");
+      return;
+    }
+
+    if (isRegisterMode && !email.trim()) {
+      Alert.alert("Error", "Email harus diisi");
       return;
     }
 
@@ -40,10 +46,10 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       if (isRegisterMode) {
-        await register(email.trim(), password, displayName.trim());
+        await register(username.trim(), email.trim(), password, displayName.trim());
         Alert.alert("Sukses", "Registrasi berhasil!");
       } else {
-        await login(email.trim(), password);
+        await login(username.trim(), password);
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Terjadi kesalahan");
@@ -54,6 +60,7 @@ export default function LoginScreen() {
 
   const handleModeSwitch = () => {
     setIsRegisterMode(!isRegisterMode);
+    setUsername("");
     setEmail("");
     setPassword("");
     setDisplayName("");
@@ -86,14 +93,26 @@ export default function LoginScreen() {
           
           <TextInput
             style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
+            placeholder="Username"
+            value={username}
+            onChangeText={setUsername}
             autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
+            autoComplete="username"
             editable={!loading}
           />
+
+          {isRegisterMode && (
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              editable={!loading}
+            />
+          )}
           
           <TextInput
             style={styles.input}

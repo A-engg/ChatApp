@@ -28,7 +28,6 @@ import {
   Message,
 } from "../utils/offlineStorage";
 
-// Constants untuk resize
 const MAX_WIDTH = 1024;
 const MAX_HEIGHT = 1024;
 const JPEG_QUALITY = 70;
@@ -104,14 +103,21 @@ export default function ChatScreen() {
     const pending = await getPendingMessages();
     for (const msg of pending) {
       try {
-        await firestore().collection('messages').add({
+        const messageData: Record<string, any> = {
           text: msg.text,
           user: msg.user,
           userId: msg.userId,
-          imageUrl: msg.imageUrl,
-          imageBase64: msg.imageBase64,
           createdAt: firestore.FieldValue.serverTimestamp(),
-        });
+        };
+        
+        if (msg.imageUrl) {
+          messageData.imageUrl = msg.imageUrl;
+        }
+        if (msg.imageBase64) {
+          messageData.imageBase64 = msg.imageBase64;
+        }
+        
+        await firestore().collection('messages').add(messageData);
         await removePendingMessage(msg.id);
       } catch (error) {
         console.error('Sync error:', error);
@@ -134,7 +140,9 @@ export default function ChatScreen() {
     if (isOnline) {
       try {
         await firestore().collection('messages').add({
-          ...newMessage,
+          text: newMessage.text,
+          user: newMessage.user,
+          userId: newMessage.userId,
           createdAt: firestore.FieldValue.serverTimestamp(),
         });
       } catch (error) {
@@ -151,7 +159,7 @@ export default function ChatScreen() {
   const pickAndSendImage = async () => {
     const options: ImageLibraryOptions = {
       mediaType: 'photo',
-      quality: 0.7, // kualitas awal saat pick
+      quality: 0.7,
     };
 
     const result = await launchImageLibrary(options);
@@ -168,7 +176,6 @@ export default function ChatScreen() {
     try {
       setUploading(true);
 
-      // 1. Resize gambar
       const resized = await ImageResizer.createResizedImage(
         asset.uri,
         MAX_WIDTH,
@@ -177,10 +184,8 @@ export default function ChatScreen() {
         JPEG_QUALITY,
       );
 
-      // 2. Ambil path file hasil resize
       let resizedPath = resized.uri || (resized as any).path;
       if (!resizedPath) {
-        console.warn('Resize result tidak punya path/uri');
         return;
       }
 
@@ -188,16 +193,9 @@ export default function ChatScreen() {
         resizedPath = resizedPath.replace('file://', '');
       }
 
-      // 3. Baca file kecil ini sebagai base64
       const base64 = await RNFS.readFile(resizedPath, 'base64');
-      
-      // Format base64 dengan prefix yang benar untuk ditampilkan di Image component
       const imageBase64 = `data:image/jpeg;base64,${base64}`;
 
-      // (opsional) kalau kamu mau ekstra aman, bisa cek panjang base64 di sini
-      // console.log('Base64 length:', base64.length);
-
-      // 4. Simpan ke Firestore sebagai pesan gambar
       await firestore().collection('messages').add({
         text: '',
         imageBase64: imageBase64,
